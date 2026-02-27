@@ -1,0 +1,36 @@
+Step 1 — Verify Volume After Attaching
+lsblk
+You should see a new disk like: - nvme1n1   10G (If Ubuntu/Nitro instance)
+Step 2 — Create Partition
+sudo fdisk /dev/nvme1n1
+m,n,p,e,e,e,w
+Step 3 — Reload Partition Table
+sudo partprobe
+Step 4 — Verify Partition Created
+lsblk
+You should now see: nvme1n1
+└─nvme1n1p1
+Step 5 — Create Filesystem (XFS)
+sudo mkfs.xfs /dev/nvme1n1p1
+Step 6 — Verify Filesystem
+lsblk
+You should see: FSTYPE = xfs
+Step 7 — Create Mount Directory
+sudo mkdir /mnt/archana
+Step 8 — Mount Volume
+sudo mount /dev/nvme1n1p1 /mnt/archana
+Step 9 — Verify Mount
+df -h
+You should see:   /dev/nvme1n1p1   → /mnt/archana
+Step 10 — Make Persistent (fstab)
+Get UUID:
+sudo blkid /dev/nvme1n1p1
+Edit fstab:
+sudo nano /etc/fstab
+Add line (example):
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /mnt/archana xfs defaults,nofail 0 0
+ctrlo enter ctrl x
+Step 11 — Test fstab
+sudo mount -a
+Step 12 — Reboot Test
+df -h

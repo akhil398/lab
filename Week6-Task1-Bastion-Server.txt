@@ -1,0 +1,389 @@
+WEEK 6 - TASK 1: VPC WITH BASTION SERVER
+=========================================
+Goal: Build a VPC with a public subnet (Bastion Server) and a private subnet (Database Server). Copy the DB server key to the Bastion server and use it as a jump host to SSH into the private Database server.
+
+ARCHITECTURE OVERVIEW:
+   VPC CIDR:               10.0.0.0/16
+   Public Subnet (Bastion): 10.0.1.0/24
+   Private Subnet (DB):     10.0.2.0/24
+   Bastion OS:              Ubuntu
+   DB Server OS:            Ubuntu
+
+
+-----------------------------------------
+STEP 1: CREATE THE VPC
+-----------------------------------------
+
+Top-right corner: Set your region to   US East (N. Virginia) us-east-1
+
+1. Go to: AWS Management Console  -->  search bar  -->  type VPC  -->  click VPC
+
+2. In the left sidebar, click "Your VPCs"
+
+3. Click the orange "Create VPC" button
+
+4. On the "Create VPC" page:
+   - Resources to create: select   "VPC only"
+   - Name tag: type   Bastion-VPC
+   - IPv4 CIDR block: select   "IPv4 CIDR manual input"
+   - IPv4 CIDR: type   10.0.0.0/16
+   - IPv6 CIDR block: select   "No IPv6 CIDR block"
+   - Tenancy: select   Default
+
+5. Click "Create VPC"
+
+6. Confirm   Bastion-VPC   appears in the list with State: Available
+
+
+-----------------------------------------
+STEP 2: CREATE THE PUBLIC SUBNET (BASTION)
+-----------------------------------------
+
+1. In the left sidebar, click "Subnets"
+
+2. Click "Create subnet"
+
+3. On the "Create subnet" page:
+   - VPC ID: select   Bastion-VPC
+   - Subnet name: type   Public-Subnet
+   - Availability Zone: select   us-east-1a
+   - IPv4 subnet CIDR block: type   10.0.1.0/24
+
+4. Click "Create subnet"
+
+5. Confirm   Public-Subnet   appears in the list
+
+
+-----------------------------------------
+STEP 3: CREATE THE PRIVATE SUBNET (DATABASE)
+-----------------------------------------
+
+1. Click "Create subnet" again
+
+2. On the "Create subnet" page:
+   - VPC ID: select   Bastion-VPC
+   - Subnet name: type   Private-Subnet
+   - Availability Zone: select   us-east-1a
+   - IPv4 subnet CIDR block: type   10.0.2.0/24
+
+3. Click "Create subnet"
+
+4. Confirm   Private-Subnet   appears in the list
+
+
+-----------------------------------------
+STEP 4: ENABLE AUTO-ASSIGN PUBLIC IP ON PUBLIC SUBNET
+-----------------------------------------
+
+1. In the Subnets list, click the checkbox next to   Public-Subnet
+
+2. Click the "Actions" dropdown at the top
+
+3. Click   "Edit subnet settings"
+
+4. Under "Auto-assign IP settings":
+   - Check the box:   "Enable auto-assign public IPv4 address"
+
+5. Click "Save"
+
+6. Confirm Public-Subnet shows "Yes" for auto-assign public IPv4
+
+
+-----------------------------------------
+STEP 5: CREATE AND ATTACH INTERNET GATEWAY
+-----------------------------------------
+
+1. In the left sidebar, click "Internet gateways"
+
+2. Click "Create internet gateway"
+
+3. On the "Create internet gateway" page:
+   - Name tag: type   Bastion-IGW
+
+4. Click "Create internet gateway"
+
+5. Click "Actions" dropdown  -->  click "Attach to VPC"
+
+6. On the "Attach to VPC" page:
+   - Available VPCs: select   Bastion-VPC
+
+7. Click "Attach internet gateway"
+
+8. Confirm State shows   "Attached"
+
+
+-----------------------------------------
+STEP 6: CREATE THE PUBLIC ROUTE TABLE
+-----------------------------------------
+
+1. In the left sidebar, click "Route tables"
+
+2. Click "Create route table"
+
+3. On the "Create route table" page:
+   - Name: type   Public-RT
+   - VPC: select   Bastion-VPC
+
+4. Click "Create route table"
+
+ADD INTERNET ROUTE:
+
+5. On the route table details page, click the "Routes" tab (bottom panel)
+
+6. Click "Edit routes"
+
+7. Click "Add route":
+   - Destination: type   0.0.0.0/0
+   - Target: click dropdown  -->  select "Internet Gateway"  -->  select   Bastion-IGW
+
+8. Click "Save changes"
+
+ASSOCIATE WITH PUBLIC SUBNET:
+
+9. Click the "Subnet associations" tab (bottom panel)
+
+10. Click "Edit subnet associations"
+
+11. Check the checkbox for   Public-Subnet
+
+12. Click "Save associations"
+
+
+-----------------------------------------
+STEP 7: CREATE SECURITY GROUP FOR BASTION SERVER
+-----------------------------------------
+
+1. In the left sidebar, click "Security groups"
+
+2. Click "Create security group"
+
+3. On the "Create security group" page:
+
+   Under "Basic details":
+   - Security group name: type   Bastion-SG
+   - Description: type   Security group for Bastion Server
+   - VPC: select   Bastion-VPC
+
+   Under "Inbound rules", click "Add rule":
+   - Type: SSH
+   - Protocol: TCP (auto-filled)
+   - Port range: 22 (auto-filled)
+   - Source: select   "My IP"
+     (This restricts SSH access to only your current IP address)
+
+   Under "Outbound rules":
+   - Leave the default:   All traffic  -->  0.0.0.0/0
+
+4. Click "Create security group"
+
+5. Confirm   Bastion-SG   is created
+
+
+-----------------------------------------
+STEP 8: CREATE SECURITY GROUP FOR DATABASE SERVER
+-----------------------------------------
+
+1. Click "Create security group" again
+
+2. On the "Create security group" page:
+
+   Under "Basic details":
+   - Security group name: type   DBServer-SG
+   - Description: type   Security group for Database Server
+   - VPC: select   Bastion-VPC
+
+   Under "Inbound rules", click "Add rule" for EACH rule below:
+
+   Rule 1 -- Allow SSH from Bastion subnet:
+   - Type: SSH
+   - Protocol: TCP (auto-filled)
+   - Port range: 22 (auto-filled)
+   - Source: select   "Custom"
+   - In the CIDR box, type   10.0.1.0/24
+     (This allows SSH only from the public/bastion subnet)
+
+   Rule 2 -- Allow MySQL from Bastion subnet:
+   - Click "Add rule"
+   - Type: MySQL/Aurora
+   - Protocol: TCP (auto-filled)
+   - Port range: 3306 (auto-filled)
+   - Source: select   "Custom"
+   - In the CIDR box, type   10.0.1.0/24
+
+   Under "Outbound rules":
+   - Leave the default:   All traffic  -->  0.0.0.0/0
+
+3. Click "Create security group"
+
+4. Confirm   DBServer-SG   is created
+
+
+-----------------------------------------
+STEP 9: LAUNCH THE BASTION SERVER (PUBLIC EC2)
+-----------------------------------------
+
+1. Go to: EC2  -->  left sidebar  -->  "Instances"
+
+2. Click "Launch instances"
+
+3. On the "Launch an instance" page:
+
+   Under "Name and tags":
+   - Name: type   Bastion-Server
+
+   Under "Application and OS Images":
+   - Click on   "Ubuntu"   (not Amazon Linux)
+   - Choose   "Ubuntu Server 24.04 LTS"   (64-bit x86)
+
+   Under "Instance type":
+   - Select   t2.micro
+
+   Under "Key pair (login)":
+   - Click "Create new key pair"
+   - Key pair name: type   bastion
+   - Key pair type: RSA
+   - Private key file format: .pem
+   - Click "Create key pair"
+   - The file   bastion.pem   will download automatically -- save it to your Desktop
+
+   Under "Network settings", click "Edit":
+   - VPC: select   Bastion-VPC
+   - Subnet: select   Public-Subnet
+   - Auto-assign public IP: should show "Enabled"
+   - Firewall (security groups): select   "Select existing security group"
+   - Common security groups: select   Bastion-SG
+
+4. Leave all other settings as default
+
+5. Click "Launch instance"
+
+6. Click "View all instances" and wait for State: Running
+   Note down the   Public IPv4 address   of Bastion-Server (e.g. 54.x.x.x)
+
+
+-----------------------------------------
+STEP 10: LAUNCH THE DATABASE SERVER (PRIVATE EC2)
+-----------------------------------------
+
+1. In the Instances page, click "Launch instances" again
+
+2. On the "Launch an instance" page:
+
+   Under "Name and tags":
+   - Name: type   DB-Server
+
+   Under "Application and OS Images":
+   - Click on   "Ubuntu"
+   - Choose   "Ubuntu Server 24.04 LTS"   (64-bit x86)
+
+   Under "Instance type":
+   - Select   t2.micro
+
+   Under "Key pair (login)":
+   - Click "Create new key pair"
+   - Key pair name: type   dbserver
+   - Key pair type: RSA
+   - Private key file format: .pem
+   - Click "Create key pair"
+   - The file   dbserver.pem   will download automatically -- save it to your Desktop
+
+   Under "Network settings", click "Edit":
+   - VPC: select   Bastion-VPC
+   - Subnet: select   Private-Subnet
+   - Auto-assign public IP: select   "Disable"
+   - Firewall (security groups): select   "Select existing security group"
+   - Common security groups: select   DBServer-SG
+
+3. Leave all other settings as default
+
+4. Click "Launch instance"
+
+5. Click "View all instances" and wait for State: Running
+   Note down the   Private IPv4 address   of DB-Server (e.g. 10.0.2.x)
+   Confirm there is NO Public IPv4 address -- this is expected
+
+
+-----------------------------------------
+STEP 11: COPY DB SERVER KEY TO BASTION SERVER
+-----------------------------------------
+
+The DB server is in a private subnet -- you cannot SSH into it directly from your computer.
+You must first copy the dbserver.pem key onto the Bastion server, then SSH from Bastion to DB.
+
+1. Open PowerShell on your local machine
+
+2. Navigate to the folder where both .pem files are saved (e.g. Desktop):
+   cd C:\Users\YourName\Desktop
+
+3. Run the SCP command to copy dbserver.pem to the Bastion server:
+   scp -i bastion.pem dbserver.pem ubuntu@<BASTION_PUBLIC_IP>:/home/ubuntu/
+
+   Replace <BASTION_PUBLIC_IP> with the actual public IP of Bastion-Server
+   Example:
+   scp -i bastion.pem dbserver.pem ubuntu@54.234.10.45:/home/ubuntu/
+
+4. If prompted "Are you sure you want to continue connecting?" type   yes   and press Enter
+
+5. The file will transfer -- you will see output like:
+   dbserver.pem   100%  ...
+
+6. This confirms dbserver.pem is now on the Bastion server at   /home/ubuntu/dbserver.pem
+
+
+-----------------------------------------
+STEP 12: SSH INTO THE BASTION SERVER
+-----------------------------------------
+
+1. In PowerShell, run the SSH command to connect to the Bastion server:
+   ssh -i bastion.pem ubuntu@<BASTION_PUBLIC_IP>
+
+   Example:
+   ssh -i bastion.pem ubuntu@54.234.10.45
+
+2. Type   yes   if prompted and press Enter
+
+3. You are now inside the Bastion server
+
+4. Verify that dbserver.pem was copied successfully:
+   ls
+
+   You should see both files listed:
+   bastion.pem
+   dbserver.pem
+
+
+-----------------------------------------
+STEP 13: SSH FROM BASTION INTO THE DATABASE SERVER
+-----------------------------------------
+
+1. You are currently inside the Bastion server (from Step 12)
+
+2. Set the correct permissions on the DB key file:
+   chmod 400 dbserver.pem
+
+3. Now SSH into the DB server using its PRIVATE IP address:
+   ssh -i dbserver.pem ubuntu@<DB_SERVER_PRIVATE_IP>
+
+   Replace <DB_SERVER_PRIVATE_IP> with the private IP you noted in Step 10
+   Example:
+   ssh -i dbserver.pem ubuntu@10.0.2.45
+
+4. Type   yes   if prompted and press Enter
+
+5. You are now connected to the Database Server (private EC2)
+
+6. Verify you are on the DB server:
+   hostname
+   OR
+   ifconfig
+
+   The IP shown should match your private subnet IP (10.0.2.x)
+
+NOTE: At this point, if you try to run   sudo apt update   it will FAIL because the private
+subnet has no internet access. This is the problem that NAT Gateway (Task 2) solves.
+
+
+=========================================
+TASK 1 COMPLETE
+A Bastion Server in the public subnet acts as a secure jump host to reach the Database Server in the private subnet. The DB server is not directly accessible from the internet -- access is only possible by first connecting to the Bastion server and then hopping to the DB server using its private IP.
+=========================================

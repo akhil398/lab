@@ -1,0 +1,170 @@
+WEEK 6 - TASK 2: VPC USING NAT GATEWAY
+========================================
+Goal: The private DB Server from Task 1 has no internet access. Add a NAT Gateway so the private subnet can reach the internet for updates and package installations, while still remaining unreachable from the outside.
+
+PRE-REQUISITE: Task 1 must be completed. You should have:
+   - Bastion-VPC created
+   - Public-Subnet (10.0.1.0/24) with Internet Gateway attached
+   - Private-Subnet (10.0.2.0/24) with no internet access
+   - Bastion-Server running in Public-Subnet
+   - DB-Server running in Private-Subnet
+
+THE PROBLEM:
+   When you SSH into DB-Server (via Bastion) and run:
+   sudo apt update
+   ...it will fail with a network error because Private-Subnet has no route to the internet.
+
+THE SOLUTION:
+   A NAT Gateway placed in the PUBLIC subnet allows private instances to initiate outbound
+   internet connections (for updates/installs) while blocking all inbound connections from the internet.
+
+
+----------------------------------------
+STEP 1: CREATE THE NAT GATEWAY
+----------------------------------------
+
+Top-right corner: Confirm your region is   US East (N. Virginia) us-east-1
+
+1. Go to: AWS Management Console  -->  search bar  -->  type VPC  -->  click VPC
+
+2. In the left sidebar, scroll down and click "NAT gateways"
+
+3. Click the orange "Create NAT gateway" button
+
+4. On the "Create NAT gateway" page:
+
+   - Name: type   Bastion-NAT
+   - Subnet: click the dropdown and select   Public-Subnet
+     IMPORTANT: NAT Gateway MUST be placed in the PUBLIC subnet, NOT the private subnet.
+     If you place it in the private subnet, it will NOT work.
+   - Connectivity type: select   "Public"
+
+5. Under "Elastic IP allocation":
+   - Click the "Allocate Elastic IP" button
+   - An Elastic IP will be automatically assigned and appear in the field
+     (This is a static public IP required for the NAT Gateway to communicate with the internet)
+
+6. Click the orange "Create NAT gateway" button
+
+7. You will see a green success banner
+
+8. The NAT Gateway will show State:   "Pending"
+   Wait until the State changes to   "Available"
+   -- Refresh the page every 30 seconds --
+   Do NOT proceed until the State shows "Available"
+
+
+----------------------------------------
+STEP 2: CREATE A NEW ROUTE TABLE FOR THE PRIVATE SUBNET
+----------------------------------------
+
+1. In the left sidebar, click "Route tables"
+
+2. Click "Create route table"
+
+3. On the "Create route table" page:
+   - Name: type   Bastion-Route
+   - VPC: click the dropdown and select   Bastion-VPC
+
+4. Click "Create route table"
+
+5. You will be taken to the route table details page
+
+
+----------------------------------------
+STEP 3: ASSOCIATE PRIVATE SUBNET WITH THIS ROUTE TABLE
+----------------------------------------
+
+1. On the route table details page, click the "Subnet associations" tab (bottom panel)
+
+2. Click "Edit subnet associations"
+
+3. On the "Edit subnet associations" page:
+   - Find   Private-Subnet   in the list and check its checkbox
+
+4. Click "Save associations"
+
+5. Confirm Private-Subnet appears under "Explicit subnet associations"
+
+
+----------------------------------------
+STEP 4: ADD NAT GATEWAY ROUTE TO THE ROUTE TABLE
+----------------------------------------
+
+1. On the route table details page, click the "Routes" tab (bottom panel)
+
+2. Click "Edit routes"
+
+3. On the "Edit routes" page:
+   - Click "Add route"
+   - Destination: type   0.0.0.0/0
+   - Target: click the dropdown  -->  select "NAT Gateway"
+     -->  then select   Bastion-NAT   from the list
+
+4. Click the orange "Save changes" button
+
+5. Confirm the Routes tab now shows:
+   Destination: 0.0.0.0/0   -->   Target: nat-xxxxxxxxxx (Bastion-NAT)
+   Destination: 10.0.0.0/16 -->   Target: local
+
+
+----------------------------------------
+STEP 5: VERIFY INTERNET ACCESS FROM PRIVATE SUBNET
+----------------------------------------
+
+Now test that the DB-Server in the private subnet can reach the internet through NAT Gateway.
+
+CONNECT TO BASTION SERVER FIRST:
+
+1. Open PowerShell on your local machine
+
+2. Navigate to the folder where your key files are saved:
+   cd C:\Users\YourName\Desktop
+
+3. SSH into Bastion-Server:
+   ssh -i bastion.pem ubuntu@<BASTION_PUBLIC_IP>
+
+4. Type   yes   if prompted
+
+HOP FROM BASTION TO DB SERVER:
+
+5. Inside the Bastion server, SSH into the DB Server:
+   ssh -i dbserver.pem ubuntu@<DB_SERVER_PRIVATE_IP>
+
+   Example:
+   ssh -i dbserver.pem ubuntu@10.0.2.45
+
+6. Type   yes   if prompted
+
+TEST INTERNET ACCESS ON DB SERVER:
+
+7. You are now inside the DB-Server (private subnet)
+
+8. Run the following command to test internet access:
+   sudo apt update
+
+   Expected output:
+   - You will see package lists being fetched from the internet
+   - Lines like "Get:1 http://security.ubuntu.com/ubuntu ..."
+   - "Reading package lists... Done"
+
+   This confirms the private EC2 now has OUTBOUND internet access via the NAT Gateway.
+
+9. Optionally test with ping:
+   ping google.com -c 4
+
+   You should receive replies from google.com
+
+WHAT IS HAPPENING BEHIND THE SCENES:
+   - The DB-Server sends a request out to the internet
+   - The request travels via the 0.0.0.0/0 route to the NAT Gateway (in Public-Subnet)
+   - The NAT Gateway replaces the private IP with its Elastic IP and forwards the request
+   - The response comes back to the NAT Gateway, which forwards it to the DB-Server
+   - The DB-Server receives the response
+   - At NO point can external internet users initiate a connection INTO the DB-Server
+
+
+========================================
+TASK 2 COMPLETE
+The NAT Gateway is placed in the public subnet and allows the private DB-Server to initiate outbound internet connections for updates and installations. The private subnet remains inaccessible from the internet -- NAT Gateway only allows OUTBOUND traffic initiated from within the private subnet. This is the correct and secure architecture for production databases and application servers.
+========================================

@@ -1,0 +1,176 @@
+TASK 2 - CREATE EBS SNAPSHOT AND ATTACH VOLUME IN ANOTHER REGION
+=================================================================
+Goal: Take a snapshot of an existing EBS volume, copy it to a different AWS region, create a new volume from that snapshot, and attach it to an EC2 instance in the destination region.
+
+
+-----------------------------------------------------------------
+STEP 1: CREATE A SNAPSHOT OF YOUR EBS VOLUME
+-----------------------------------------------------------------
+
+Top-right corner: Confirm your current region (e.g. Mumbai - ap-south-1)
+
+1. Go to: AWS Management Console  -->  Services  -->  EC2
+
+2. In the left sidebar, scroll down and click "Volumes"
+   (under the "Elastic Block Store" section)
+
+3. You will see a list of your EBS volumes
+   - Click on the volume you want to snapshot to select it (checkbox on the left)
+
+4. At the top of the page, click the "Actions" dropdown button
+
+5. From the dropdown menu, click "Create snapshot"
+
+6. On the "Create snapshot" page:
+   - Description: type a name, e.g.   my-ebs-snapshot-for-migration
+   - Leave all other settings as default
+
+7. Click the orange "Create snapshot" button at the bottom
+
+8. A confirmation banner will appear -- click "Close"
+
+
+-----------------------------------------------------------------
+STEP 2: VERIFY THE SNAPSHOT WAS CREATED
+-----------------------------------------------------------------
+
+1. In the left sidebar, click "Snapshots"
+   (under the "Elastic Block Store" section)
+
+2. You will see your snapshot listed
+   - Check the "Status" column -- it will first show "pending"
+   - Wait until the Status changes to "completed" before moving on
+   - Refresh the page every 30 seconds to check
+
+
+-----------------------------------------------------------------
+STEP 3: COPY THE SNAPSHOT TO ANOTHER REGION
+-----------------------------------------------------------------
+
+1. In the Snapshots list, click on your snapshot to select it (checkbox)
+
+2. At the top of the page, click the "Actions" dropdown button
+
+3. From the dropdown menu, click "Copy snapshot"
+
+4. On the "Copy snapshot" page:
+   - Destination Region: click the dropdown and select your target region
+     e.g. select   US East (N. Virginia) us-east-1
+   - Description: type   copied-snapshot-from-mumbai   (or any label you prefer)
+   - Encryption: leave as default (unchecked unless your original was encrypted)
+
+5. Click the orange "Copy snapshot" button
+
+6. A confirmation pop-up will appear -- click "Close"
+
+NOTE: The copy process runs in the background. You must now switch to the destination region to monitor it.
+
+
+-----------------------------------------------------------------
+STEP 4: SWITCH TO THE DESTINATION REGION AND MONITOR COPY PROGRESS
+-----------------------------------------------------------------
+
+1. Top-right corner of the AWS Management Console, click the region name (e.g. "Mumbai")
+
+2. From the dropdown, select your destination region
+   e.g. click   "US East (N. Virginia)"
+
+3. Go to: EC2  -->  left sidebar  -->  "Snapshots"
+
+4. You will see the copied snapshot listed with Status "pending"
+
+5. Wait until the Status changes to "completed"
+   - Refresh the page every 30-60 seconds
+   - Do NOT proceed until it shows "completed"
+
+
+-----------------------------------------------------------------
+STEP 5: CREATE A NEW VOLUME FROM THE COPIED SNAPSHOT
+-----------------------------------------------------------------
+
+(You should still be in the destination region - e.g. us-east-1)
+
+1. In the Snapshots list, click on the copied snapshot to select it (checkbox)
+
+2. At the top, click the "Actions" dropdown button
+
+3. From the dropdown, click "Create volume from snapshot"
+
+4. On the "Create volume" page:
+   - Volume Type: select   gp2   (General Purpose SSD) -- or leave as default
+   - Size (GiB): leave as default (it will match the original snapshot size)
+   - Availability Zone: select an AZ in your destination region
+     e.g.   us-east-1a
+     IMPORTANT: This AZ must match the AZ where your EC2 instance is (or will be)
+   - Snapshot ID: already pre-filled from the snapshot you selected
+   - Encryption: leave as default
+
+5. Click the orange "Create volume" button at the bottom
+
+6. A confirmation banner will appear -- click "Close"
+
+7. In the left sidebar, click "Volumes"
+   - Find your new volume -- Status will show "creating" then change to "available"
+   - Wait until it shows "available"
+
+
+-----------------------------------------------------------------
+STEP 6: LAUNCH AN EC2 INSTANCE IN THE DESTINATION REGION
+-----------------------------------------------------------------
+
+(Skip this step if you already have an EC2 instance running in the same AZ as the volume)
+
+1. In the left sidebar, click "Instances"
+
+2. Click "Launch instances"
+
+3. Under "Name and tags":
+   - Name: type   destination-instance
+
+4. Under "Application and OS Images":
+   - Select "Amazon Linux 2023 AMI"
+
+5. Under "Instance type":
+   - Select   t2.micro
+
+6. Under "Key pair":
+   - Select an existing key pair or create a new one
+
+7. Under "Network settings":
+   - Subnet: choose the SAME Availability Zone you selected for the volume above
+     e.g. us-east-1a
+
+8. Leave other settings as default
+
+9. Click "Launch instance"
+
+10. Wait for the instance Status to show "Running"
+
+
+-----------------------------------------------------------------
+STEP 7: ATTACH THE VOLUME TO THE EC2 INSTANCE
+-----------------------------------------------------------------
+
+1. In the left sidebar, click "Volumes"
+
+2. Click on your new volume to select it (checkbox)
+
+3. At the top, click the "Actions" dropdown button
+
+4. From the dropdown, click "Attach volume"
+
+5. On the "Attach volume" page:
+   - Instance: click the dropdown and start typing your instance name
+     Select   destination-instance   (or the instance you want to attach to)
+   - Device name: leave as default   /dev/sdf   (or use what AWS suggests)
+
+6. Click the orange "Attach volume" button
+
+7. In the Volumes list, the volume Status will change from "available" to "in-use"
+   - This confirms the volume is now attached to the instance
+
+
+=================================================================
+TASK 2 COMPLETE
+The EBS volume snapshot has been copied to another region, a new volume was created from it, and the volume is now attached to an EC2 instance in the destination region. You can now SSH into the instance and mount the volume to access the data.
+=================================================================

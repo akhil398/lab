@@ -1,0 +1,303 @@
+TASK 2 - S3 VERSIONING AND CROSS-REGION REPLICATION (CRR)
+==========================================================
+Goal: Enable versioning on an S3 bucket, observe how multiple versions of the same object are stored, then set up Cross-Region Replication (CRR) so objects automatically copy to a bucket in another region. Uses LabRole for IAM (AWS Academy / Student Account).
+
+
+PART A - S3 VERSIONING
+==========================================================
+
+----------------------------------------------------------
+STEP 1: CREATE THE SOURCE BUCKET (WITH VERSIONING)
+----------------------------------------------------------
+
+Top-right corner: Set your region to   US East (N. Virginia) us-east-1
+
+1. Go to: AWS Management Console  -->  search bar  -->  type S3  -->  click S3
+
+2. In the left sidebar, click "General purpose buckets"
+
+3. Click the orange "Create bucket" button
+
+4. On the "Create bucket" page:
+
+   Under "General configuration":
+   - AWS Region: US East (N. Virginia) us-east-1
+   - Bucket name: type   week4labtask
+     (or any unique name like   versioning-source-yourname-2026)
+
+   Under "Object Ownership":
+   - Select   "ACLs enabled"
+   - Select   "Bucket owner preferred"
+
+   Under "Block Public Access settings":
+   - Leave as default (Block all public access -- checked is fine for this task)
+
+5. Scroll to the bottom and click "Create bucket"
+
+
+----------------------------------------------------------
+STEP 2: ENABLE VERSIONING ON THE SOURCE BUCKET
+----------------------------------------------------------
+
+1. Click on your bucket name   week4labtask   to open it
+
+2. Click the "Properties" tab at the top of the bucket page
+
+3. Scroll down to the "Bucket Versioning" section
+
+4. Click the "Edit" button on the right side
+
+5. On the "Edit Bucket Versioning" page:
+   - Select   "Enable"
+
+6. Click the orange "Save changes" button
+
+7. Go back to the "Properties" tab
+   Confirm that "Bucket Versioning" now shows   "Enabled"
+
+
+----------------------------------------------------------
+STEP 3: UPLOAD A FILE (VERSION 1)
+----------------------------------------------------------
+
+1. Click the "Objects" tab
+
+2. Click the orange "Upload" button
+
+3. Click "Add files"
+
+4. Select any file from your computer -- for example:   report.pdf
+
+5. Click the orange "Upload" button
+
+6. Wait for the green "Upload succeeded" banner
+
+7. Click "Close"
+
+8. Back on the Objects tab, you will see your file listed
+   - Note: the Version ID column may show "null" for this first upload
+
+
+----------------------------------------------------------
+STEP 4: UPLOAD THE SAME FILE AGAIN (VERSION 2)
+----------------------------------------------------------
+
+1. Make a small change to the same file on your computer
+   (even just rename it back to the same name -- the key is uploading the same filename)
+
+2. Click "Upload" again in the Objects tab
+
+3. Click "Add files"
+
+4. Select the same file   report.pdf
+
+5. Click "Upload" and wait for success
+
+6. Click "Close"
+
+
+----------------------------------------------------------
+STEP 5: VIEW ALL VERSIONS OF THE FILE
+----------------------------------------------------------
+
+1. On the Objects tab, find the toggle at the top of the object list:
+   "Show versions"   (it is a toggle/slider button near the search bar)
+
+2. Click "Show versions" to turn it ON
+
+3. You will now see the same file listed TWICE:
+   - One entry with a Version ID (the latest version)
+   - One entry with a different Version ID (the older version)
+
+   This confirms versioning is working -- both versions are stored.
+
+
+----------------------------------------------------------
+STEP 6: TEST DELETE MARKER (ACCIDENTAL DELETION PROTECTION)
+----------------------------------------------------------
+
+1. Make sure "Show versions" is turned OFF (toggle it off)
+
+2. Click the checkbox next to your file   report.pdf
+
+3. Click the "Delete" button above the list
+
+4. On the confirmation page:
+   - Type   delete   in the confirmation box
+   - Click "Delete objects"
+   - Click "Close"
+
+5. The file appears to be gone from the Objects tab
+
+6. Now turn ON "Show versions" again
+
+7. You will see:
+   - A "Delete marker" entry at the top (Type = Delete marker)
+   - Your older versions still exist below it
+
+8. To RESTORE the file:
+   - Click on the "Delete marker" entry to select it
+   - Click "Delete" to delete the delete marker
+   - Click "Close"
+   - The file will reappear in the Objects tab
+
+   This demonstrates accidental deletion protection with versioning.
+
+
+==========================================================
+PART B - CROSS-REGION REPLICATION (CRR)
+==========================================================
+
+IMPORTANT NOTES FOR AWS ACADEMY / STUDENT ACCOUNT:
+- You must use   LabRole   as the IAM role (do NOT select "Create new role")
+- Versioning must be enabled on BOTH source and destination buckets
+- CRR only replicates NEW objects uploaded after the rule is created
+
+
+----------------------------------------------------------
+STEP 7: CREATE THE DESTINATION BUCKET (DIFFERENT REGION)
+----------------------------------------------------------
+
+1. Go to S3  -->  "General purpose buckets"
+
+2. Click "Create bucket"
+
+3. On the "Create bucket" page:
+
+   Under "General configuration":
+   - AWS Region: select   US West (Oregon) us-west-2
+     (This MUST be different from your source bucket region)
+   - Bucket name: type   week4-replica-bucket
+     (must be globally unique -- add your name if needed)
+
+   Under "Object Ownership":
+   - Select   "ACLs enabled"
+   - Select   "Bucket owner preferred"
+
+   Under "Block Public Access settings":
+   - Leave as default
+
+4. Scroll to the bottom and click "Create bucket"
+
+
+----------------------------------------------------------
+STEP 8: ENABLE VERSIONING ON THE DESTINATION BUCKET
+----------------------------------------------------------
+
+1. Click on   week4-replica-bucket   to open it
+
+2. Click the "Properties" tab
+
+3. Scroll to "Bucket Versioning"  -->  click "Edit"
+
+4. Select   "Enable"
+
+5. Click "Save changes"
+
+6. Confirm "Bucket Versioning" shows   "Enabled"
+
+
+----------------------------------------------------------
+STEP 9: CREATE A REPLICATION RULE ON THE SOURCE BUCKET
+----------------------------------------------------------
+
+1. Go back to your SOURCE bucket:   week4labtask
+   (use the breadcrumb at the top: Amazon S3  -->  Buckets  -->  week4labtask)
+
+2. Click the "Management" tab at the top of the bucket page
+
+3. Scroll down to find "Replication rules"
+
+4. Click the "Create replication rule" button
+
+
+----------------------------------------------------------
+STEP 10: CONFIGURE THE REPLICATION RULE
+----------------------------------------------------------
+
+On the "Create replication rule" page, fill in each section as follows:
+
+SECTION: Replication rule configuration
+   - Replication rule name: type   academy-crr-rule
+   - Status: select   Enabled
+
+SECTION: Source bucket
+   - "Choose a rule scope":
+     Select   "Apply to all objects in the bucket"
+
+SECTION: Destination
+   - Select   "Choose a bucket in this account"
+   - Bucket name field: type   week4-replica-bucket
+     OR click "Browse S3" and select it from the list
+   - Destination Region will auto-fill:   US West (Oregon) us-west-2
+     Confirm this shows a DIFFERENT region than your source
+
+SECTION: IAM role
+   IMPORTANT -- AWS Academy / Student Account Step:
+   - Do NOT select "Create new role" (this will fail with a permissions error)
+   - Select   "Choose from existing IAM roles"
+   - In the IAM role dropdown, select   LabRole
+   - You should see "LabRole" appear in the dropdown -- select it
+
+SECTION: Encryption
+   - Leave as default (unchecked)
+
+SECTION: Destination storage class
+   - Leave as default (unchecked)
+
+SECTION: Additional replication options
+   - Leave all as default (unchecked)
+
+5. Scroll to the bottom and click the orange "Save" button
+
+6. A pop-up may appear asking:
+   "Do you want to replicate existing objects?"
+   - Click "No, do not replicate existing objects"
+   - Click "Submit"
+
+7. You will see a green banner:
+   "Replication configuration successfully updated"
+
+8. The replication rule   academy-crr-rule   will appear in the list with Status: Enabled
+
+
+----------------------------------------------------------
+STEP 11: TEST THE REPLICATION
+----------------------------------------------------------
+
+UPLOAD A NEW OBJECT TO SOURCE BUCKET:
+
+1. Click the "Objects" tab of   week4labtask
+
+2. Click "Upload"  -->  "Add files"
+
+3. Select any file from your computer (e.g. a PDF or image)
+
+4. Click "Upload"  -->  wait for success  -->  click "Close"
+
+VERIFY IT APPEARS IN THE DESTINATION BUCKET:
+
+5. Top-right corner, click the region selector and switch to:
+   US West (Oregon) us-west-2
+
+6. Go to: S3  -->  "General purpose buckets"
+
+7. Click on   week4-replica-bucket
+
+8. Click the "Objects" tab
+
+9. Wait 1-2 minutes and refresh the page
+   (Replication is automatic but may take a minute)
+
+10. You should see the same file you uploaded to the source bucket now appearing here
+
+11. Click on the file -- check the "Properties" tab
+    You will see a Version ID assigned to the replicated object
+
+    This confirms Cross-Region Replication is working.
+
+
+==========================================================
+TASK 2 COMPLETE
+Versioning is enabled on the source bucket -- multiple versions of the same file are stored and deletions are protected by delete markers. Cross-Region Replication is configured using LabRole, and new objects uploaded to the source bucket automatically replicate to the destination bucket in a different region.
+==========================================================

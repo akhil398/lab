@@ -1,0 +1,191 @@
+TASK 3 - PARTITION, FORMAT, AND MOUNT THE ATTACHED EBS VOLUME
+=============================================================
+Goal: After attaching the EBS volume to the EC2 instance, SSH in and configure the volume -- create a partition, format it with XFS, mount it to a directory, and make the mount persistent across reboots.
+
+PRE-REQUISITE: You must be SSH'd into your EC2 instance before starting.
+To connect: ssh -i YourKey.pem ec2-user@<your-instance-public-ip>
+Then run:   sudo su
+
+
+-------------------------------------------------------------
+STEP 1: VERIFY THE VOLUME IS VISIBLE ON THE INSTANCE
+-------------------------------------------------------------
+
+Run the following command to list all block devices:
+   lsblk
+
+Look for the new disk in the output.
+On a Nitro-based or Ubuntu instance, you should see something like:
+   nvme0n1     (this is your root volume / OS)
+   nvme1n1     (this is your newly attached EBS volume -- 10G or whatever size)
+
+If you see nvme1n1 (or similar), the volume is attached and detected correctly.
+
+
+-------------------------------------------------------------
+STEP 2: CREATE A PARTITION ON THE VOLUME
+-------------------------------------------------------------
+
+Run the fdisk utility on your new disk:
+   sudo fdisk /dev/nvme1n1
+
+You are now inside the fdisk interactive menu. Type the following keys one by one, pressing Enter after each:
+
+   m       --> shows help menu (optional, just to see options)
+   n       --> new partition
+   p       --> primary partition
+   Enter   --> accept default partition number (1)
+   Enter   --> accept default first sector
+   Enter   --> accept default last sector (uses full disk)
+   w       --> write the changes and exit fdisk
+
+fdisk will confirm "The partition table has been altered" and exit.
+
+
+-------------------------------------------------------------
+STEP 3: RELOAD THE PARTITION TABLE
+-------------------------------------------------------------
+
+Tell the OS kernel to re-read the updated partition table:
+   sudo partprobe
+
+No output means success.
+
+
+-------------------------------------------------------------
+STEP 4: VERIFY THE PARTITION WAS CREATED
+-------------------------------------------------------------
+
+Run lsblk again:
+   lsblk
+
+You should now see the partition listed under the disk:
+   nvme1n1
+   └─nvme1n1p1
+
+nvme1n1p1 is your new partition.
+
+
+-------------------------------------------------------------
+STEP 5: FORMAT THE PARTITION WITH XFS FILESYSTEM
+-------------------------------------------------------------
+
+Create an XFS filesystem on the partition:
+   sudo mkfs.xfs /dev/nvme1n1p1
+
+You will see output showing the filesystem being created with metadata/data blocks.
+Wait for it to complete and return to the command prompt.
+
+
+-------------------------------------------------------------
+STEP 6: VERIFY THE FILESYSTEM TYPE
+-------------------------------------------------------------
+
+Run lsblk with filesystem info:
+   lsblk -f
+
+OR run:
+   lsblk
+
+Under the FSTYPE column, you should see   xfs   next to nvme1n1p1.
+This confirms the partition is formatted correctly.
+
+
+-------------------------------------------------------------
+STEP 7: CREATE A MOUNT DIRECTORY
+-------------------------------------------------------------
+
+Create the directory where the volume will be mounted:
+   sudo mkdir /mnt/archana
+
+(You can replace "archana" with any directory name you prefer)
+
+
+-------------------------------------------------------------
+STEP 8: MOUNT THE VOLUME TO THE DIRECTORY
+-------------------------------------------------------------
+
+Mount the formatted partition to the directory you just created:
+   sudo mount /dev/nvme1n1p1 /mnt/archana
+
+
+-------------------------------------------------------------
+STEP 9: VERIFY THE MOUNT
+-------------------------------------------------------------
+
+Check that the volume is mounted:
+   df -h
+
+In the output, look for a line like:
+   /dev/nvme1n1p1    10G   ...   /mnt/archana
+
+If you see your partition listed with the mount point /mnt/archana, the mount is successful.
+
+
+-------------------------------------------------------------
+STEP 10: MAKE THE MOUNT PERSISTENT (SURVIVES REBOOT)
+-------------------------------------------------------------
+
+By default, the mount is lost when the instance reboots. To make it permanent, add it to /etc/fstab.
+
+SUB-STEP A: Get the UUID of the partition:
+   sudo blkid /dev/nvme1n1p1
+
+The output will look like:
+   /dev/nvme1n1p1: UUID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" TYPE="xfs"
+
+Copy the UUID value (the long string between the quotes).
+
+SUB-STEP B: Open the fstab file for editing:
+   sudo nano /etc/fstab
+
+SUB-STEP C: The file will open in the nano editor.
+   - Use the arrow keys to go to the very last line of the file
+   - Press Enter to create a new blank line
+   - Type the following line (replace the UUID with the one you copied):
+
+   UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /mnt/archana xfs defaults,nofail 0 0
+
+   Make sure there are no typos and the fields are separated by single spaces or tabs.
+
+SUB-STEP D: Save and exit nano:
+   - Press   Ctrl + O   (to write/save the file)
+   - Press   Enter      (to confirm the filename)
+   - Press   Ctrl + X   (to exit nano)
+
+
+-------------------------------------------------------------
+STEP 11: TEST THE FSTAB ENTRY
+-------------------------------------------------------------
+
+Test that the fstab entry is correct without rebooting:
+   sudo mount -a
+
+If there is no error output, the fstab entry is valid.
+
+If you see an error, go back and check the UUID and line format in /etc/fstab.
+
+
+-------------------------------------------------------------
+STEP 12: REBOOT TEST
+-------------------------------------------------------------
+
+Reboot the instance to confirm the volume auto-mounts on startup:
+   sudo reboot
+
+Wait 1-2 minutes, then SSH back into the instance:
+   ssh -i YourKey.pem ec2-user@<your-instance-public-ip>
+
+Then run:
+   df -h
+
+You should again see:
+   /dev/nvme1n1p1    ...   /mnt/archana
+
+This confirms the volume mounts automatically on every reboot.
+
+
+=============================================================
+TASK 3 COMPLETE
+The EBS volume is partitioned, formatted with XFS, mounted at /mnt/archana, and configured to auto-mount on reboot via /etc/fstab.
+=============================================================

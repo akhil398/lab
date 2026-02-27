@@ -1,0 +1,245 @@
+TASK 3 - STATIC WEBSITE HOSTING IN S3
+======================================
+Goal: Create an S3 bucket, upload index.html and error.html, enable static website hosting, set public read access via ACL at both bucket and object levels, and access the website using the S3 website endpoint URL.
+
+
+PRE-REQUISITE: PREPARE YOUR HTML FILES
+--------------------------------------
+Before starting, create two simple HTML files on your computer.
+
+Open Notepad (Windows) or any text editor and create:
+
+FILE 1 -- save as:   index.html
+Paste this content:
+<!DOCTYPE html>
+<html>
+<head><title>My S3 Website</title></head>
+<body>
+<h1>Welcome to My Static Website on S3</h1>
+<p>This site is hosted on Amazon S3.</p>
+</body>
+</html>
+
+FILE 2 -- save as:   error.html
+Paste this content:
+<!DOCTYPE html>
+<html>
+<head><title>Error - Page Not Found</title></head>
+<body>
+<h1>404 - Page Not Found</h1>
+<p>Sorry, the page you are looking for does not exist.</p>
+</body>
+</html>
+
+Save both files somewhere easy to find (e.g. your Desktop).
+
+
+--------------------------------------
+STEP 1: CREATE THE S3 BUCKET
+--------------------------------------
+
+Top-right corner: Set your region to   US East (N. Virginia) us-east-1
+
+1. Go to: AWS Management Console  -->  search bar  -->  type S3  -->  click S3
+
+2. In the left sidebar, click "General purpose buckets"
+
+3. Click the orange "Create bucket" button
+
+4. On the "Create bucket" page:
+
+   Under "General configuration":
+   - AWS Region: US East (N. Virginia) us-east-1
+   - Bucket name: type   my-static-site-bucket-123
+     NOTE: Must be globally unique. Add your name if needed:
+     e.g.   23bd1a0546-host-html   or   static-site-archana-2026
+
+   Under "Object Ownership":
+   - Click to select   "ACLs enabled"
+   - Under the sub-options that appear, select   "Bucket owner preferred"
+
+   Under "Block Public Access settings for this bucket":
+   - Uncheck the box   "Block all public access"
+   - All four sub-options will also uncheck -- leave them all unchecked
+   - Check the acknowledgment box:
+     "I acknowledge that the current settings might result in this bucket and the objects within becoming public"
+
+5. Leave all other settings as default
+
+6. Scroll to the bottom and click "Create bucket"
+
+7. You will be taken back to the bucket list -- confirm your bucket is listed
+
+
+--------------------------------------
+STEP 2: UPLOAD WEBSITE FILES
+--------------------------------------
+
+1. Click on your bucket name   my-static-site-bucket-123   to open it
+
+2. Click the "Objects" tab (it should already be selected)
+
+3. Click the orange "Upload" button
+
+4. Click "Add files"
+
+5. In the file picker, navigate to your Desktop (or wherever you saved the files)
+   - Select   index.html
+   - Hold Ctrl and also select   error.html
+   - Both files should appear selected
+
+6. Click "Open" -- both files will appear in the "Files and folders" list on the page
+
+7. Leave all settings as default
+
+8. Click the orange "Upload" button at the bottom
+
+9. Wait for the green banner "Upload succeeded"
+   Confirm both files show Status: "Succeeded"
+
+10. Click "Close"
+
+11. You should now see both   index.html   and   error.html   in the Objects tab
+
+
+--------------------------------------
+STEP 3: ENABLE STATIC WEBSITE HOSTING
+--------------------------------------
+
+1. Click the "Properties" tab at the top of the bucket page
+
+2. Scroll all the way down to the last section:
+   "Static website hosting"
+
+3. Click the "Edit" button on the right side
+
+4. On the "Edit static website hosting" page:
+   - Static website hosting: select   "Enable"
+   - Hosting type: select   "Host a static website"
+   - Index document: type   index.html
+   - Error document: type   error.html
+
+5. Leave all other fields blank / as default
+
+6. Click the orange "Save changes" button
+
+7. You will be taken back to the Properties tab
+
+8. Scroll back down to "Static website hosting"
+   You will now see:
+   - S3 static website hosting: Enabled
+   - Bucket website endpoint: a URL like
+     http://my-static-site-bucket-123.s3-website-us-east-1.amazonaws.com
+
+9. Copy this URL -- you will need it in Step 7 to test the site
+
+
+--------------------------------------
+STEP 4: ENABLE BUCKET-LEVEL PUBLIC ACCESS (ACL)
+--------------------------------------
+
+1. Click the "Permissions" tab at the top of the bucket page
+
+2. Scroll down to the "Access Control List (ACL)" section
+
+3. Click the "Edit" button
+
+4. On the "Edit access control list (ACL)" page:
+   - Find the row labeled   "Everyone (public access)"
+   - Under the "Objects" column, check the box for   "Read"
+   - A warning box will appear at the bottom of the page
+
+5. Check the box:
+   "I understand the effects of these changes on my objects and buckets."
+
+6. Click the orange "Save changes" button
+
+7. Confirm that the ACL section now shows Read access for Everyone (public access)
+
+
+--------------------------------------
+STEP 5: ENABLE OBJECT-LEVEL PUBLIC ACCESS FOR index.html
+--------------------------------------
+
+1. Click the "Objects" tab
+
+2. Click on   index.html   to open its detail page
+
+3. Click the "Permissions" tab on the object detail page
+
+4. Scroll down to "Access Control List (ACL)"
+
+5. Click the "Edit" button
+
+6. On the "Edit access control list" page:
+   - Find the row   "Everyone (public access)"
+   - Under "Objects" column, check   "Read"
+
+7. Check the box:
+   "I understand the effects of these changes on this object."
+
+8. Click "Save changes"
+
+9. Use the breadcrumb at the top to go back to the bucket:
+   Amazon S3  -->  Buckets  -->  my-static-site-bucket-123
+
+
+--------------------------------------
+STEP 6: ENABLE OBJECT-LEVEL PUBLIC ACCESS FOR error.html
+--------------------------------------
+
+1. You should be back on the Objects tab of your bucket
+
+2. Click on   error.html   to open its detail page
+
+3. Click the "Permissions" tab
+
+4. Scroll to "Access Control List (ACL)"
+
+5. Click "Edit"
+
+6. Find the row   "Everyone (public access)"
+   Under "Objects" column, check   "Read"
+
+7. Check the acknowledgment box
+
+8. Click "Save changes"
+
+
+--------------------------------------
+STEP 7: ACCESS AND VERIFY THE STATIC WEBSITE
+--------------------------------------
+
+TEST THE HOMEPAGE:
+
+1. Go to the "Properties" tab of your bucket
+
+2. Scroll down to "Static website hosting"
+
+3. Click the link under "Bucket website endpoint"
+   OR copy the URL and paste it in a browser
+
+   URL format:
+   http://my-static-site-bucket-123.s3-website-us-east-1.amazonaws.com
+
+4. A new browser tab will open
+   You should see the contents of   index.html   -- your welcome page
+
+   This confirms the static website is working.
+
+TEST THE ERROR PAGE:
+
+5. In the same browser, add a non-existent path to the URL:
+   http://my-static-site-bucket-123.s3-website-us-east-1.amazonaws.com/invalid.html
+
+6. Press Enter
+
+7. You should see the contents of   error.html   -- your error page
+
+   This confirms the error page routing is working correctly.
+
+
+======================================
+TASK 3 COMPLETE
+An S3 static website is live. index.html loads on the main URL and error.html appears for any invalid/missing page paths. Public access is granted via ACL at both bucket and object levels.
+======================================

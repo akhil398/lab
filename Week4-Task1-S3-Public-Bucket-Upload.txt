@@ -1,0 +1,180 @@
+TASK 1 - CREATE AN S3 BUCKET, UPLOAD AN OBJECT, AND ENABLE PUBLIC ACCESS
+=========================================================================
+Goal: Create an S3 bucket, enable ACLs, upload a file, and make it publicly accessible so anyone can open it via a URL in the browser.
+
+
+-------------------------------------------------------------------------
+STEP 1: OPEN THE S3 SERVICE
+-------------------------------------------------------------------------
+
+Top-right corner: Make sure your region is set to   US East (N. Virginia) us-east-1
+
+1. Go to: AWS Management Console
+
+2. In the top search bar, type   S3   and press Enter
+
+3. Click on "S3" from the results to open the S3 service page
+
+4. On the left sidebar, click "General purpose buckets"
+
+5. Click the orange "Create bucket" button
+
+
+-------------------------------------------------------------------------
+STEP 2: CONFIGURE BUCKET NAME AND REGION
+-------------------------------------------------------------------------
+
+On the "Create bucket" page:
+
+1. Under "General configuration":
+   - AWS Region: select   US East (N. Virginia) us-east-1
+   - Bucket name: type   my-public-bucket-123
+     NOTE: Bucket names must be globally unique. If this name is taken,
+     try adding your name or a number, e.g.   my-public-bucket-archana-2026
+
+2. Under "Object Ownership":
+   - By default it shows "ACLs disabled (recommended)"
+   - Click to select   "ACLs enabled"
+   - Under the expanded options, select   "Bucket owner preferred"
+   - A warning message will appear -- that is fine, continue
+
+
+-------------------------------------------------------------------------
+STEP 3: DISABLE BLOCK PUBLIC ACCESS
+-------------------------------------------------------------------------
+
+Still on the "Create bucket" page, scroll down to find:
+
+"Block Public Access settings for this bucket"
+
+1. Uncheck the box that says   "Block all public access"
+
+2. All four sub-checkboxes will also become unchecked automatically -- leave them all unchecked
+
+3. A yellow warning box will appear at the bottom of that section saying:
+   "Turning off block all public access might result in this bucket and the objects within becoming public"
+
+4. Check the box that says:
+   "I acknowledge that the current settings might result in this bucket and the objects within becoming public"
+
+
+-------------------------------------------------------------------------
+STEP 4: COMPLETE BUCKET CREATION
+-------------------------------------------------------------------------
+
+1. Scroll all the way down to the bottom of the page
+
+2. Leave all other settings as their defaults
+
+3. Click the orange "Create bucket" button at the bottom
+
+4. You will be taken back to the S3 Buckets list
+
+5. Confirm you can see your new bucket   my-public-bucket-123   in the list
+
+
+-------------------------------------------------------------------------
+STEP 5: ENABLE PUBLIC READ ACCESS AT BUCKET LEVEL (ACL)
+-------------------------------------------------------------------------
+
+1. Click on the bucket name   my-public-bucket-123   to open it
+
+2. At the top of the bucket page, click the "Permissions" tab
+
+3. Scroll down until you see the section "Access Control List (ACL)"
+
+4. Click the "Edit" button on the right side of that section
+
+5. On the "Edit access control list (ACL)" page:
+   - Find the row labeled   "Everyone (public access)"
+   - Under the "Objects" column for that row, check the box for   "Read"
+   - A warning pop-up will appear at the bottom of the page
+
+6. Check the box that says:
+   "I understand the effects of these changes on my objects and buckets."
+
+7. Click the orange "Save changes" button
+
+8. You will be taken back to the Permissions tab
+   Confirm that the ACL section now shows "Read" for Everyone (public access)
+
+
+-------------------------------------------------------------------------
+STEP 6: UPLOAD A FILE TO THE BUCKET
+-------------------------------------------------------------------------
+
+1. Click the "Objects" tab at the top of the bucket page
+
+2. Click the orange "Upload" button
+
+3. On the Upload page, click "Add files"
+
+4. A file picker will open on your computer
+   - Navigate to and select any file you want to upload
+   - For example: an image file like   photo.jpg   or a PDF
+
+5. The file will appear in the "Files and folders" section on the page
+
+6. Leave all other settings as default
+
+7. Click the orange "Upload" button at the bottom
+
+8. Wait for the upload to complete
+   - You will see a green banner: "Upload succeeded"
+   - The status column will show "Succeeded" for your file
+
+9. Click "Close" to go back to the Objects list
+
+
+-------------------------------------------------------------------------
+STEP 7: ENABLE PUBLIC READ ACCESS AT OBJECT LEVEL (ACL)
+-------------------------------------------------------------------------
+
+1. In the Objects tab, click on the name of the file you just uploaded
+
+2. You will be taken to the object detail page
+
+3. Click the "Permissions" tab on the object page
+
+4. Scroll down to "Access Control List (ACL)"
+
+5. Click the "Edit" button
+
+6. On the "Edit access control list" page:
+   - Find the row labeled   "Everyone (public access)"
+   - Under the "Objects" column, check the box for   "Read"
+
+7. Check the box at the bottom:
+   "I understand the effects of these changes on this object."
+
+8. Click the orange "Save changes" button
+
+
+-------------------------------------------------------------------------
+STEP 8: VERIFY PUBLIC ACCESS - TEST THE OBJECT URL
+-------------------------------------------------------------------------
+
+1. Go back to the object detail page
+   (click the object name from the Objects tab)
+
+2. On the object detail page, scroll down to find "Object URL"
+   It will look like:
+   https://my-public-bucket-123.s3.amazonaws.com/yourfilename.jpg
+
+3. Click on the URL or copy it
+
+4. Open a new browser tab in Incognito / Private mode
+   (Ctrl+Shift+N in Chrome, Ctrl+Shift+P in Firefox)
+
+5. Paste the URL in the incognito browser and press Enter
+
+6. The file should open / download successfully WITHOUT requiring any login
+
+   If the file loads -- public access is working correctly.
+   If you get an "Access Denied" error -- go back and check Steps 5 and 7.
+
+
+=========================================================================
+TASK 1 COMPLETE
+An S3 bucket has been created with public access enabled, a file has been uploaded, ACL permissions have been set at both bucket and object levels, and the object is now publicly accessible via its URL.
+=========================================================================

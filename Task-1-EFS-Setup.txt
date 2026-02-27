@@ -1,0 +1,264 @@
+TASK 1 - AMAZON ELASTIC FILE SYSTEM (EFS) SETUP
+=================================================
+Goal: Launch two EC2 instances in different subnets and attach a shared EFS file system so both instances can read and write the same files simultaneously.
+
+
+-------------------------------------------------
+STEP 1: LAUNCH FIRST EC2 INSTANCE (EFS-1)
+-------------------------------------------------
+
+Top-right corner: Make sure your region is set to Mumbai (ap-south-1)
+
+1. Go to: AWS Management Console  -->  Services  -->  EC2
+
+2. In the left sidebar, click "Instances"
+
+3. Top-right of the page, click the orange button "Launch instances"
+
+4. Under "Name and tags" section:
+   - Name field: type   EFS-1
+
+5. Under "Application and OS Images (Amazon Machine Image)" section:
+   - Select "Amazon Linux"
+   - Choose "Amazon Linux 2023 AMI" (64-bit x86)
+
+6. Under "Instance type" section:
+   - Select   t2.micro
+
+7. Under "Key pair (login)" section:
+   - Click "Create new key pair"
+   - Key pair name: type   EFS
+   - Key pair type: RSA
+   - Private key file format: .pem
+   - Click "Create key pair" and save the downloaded file
+
+8. Under "Network settings" section, click "Edit":
+   - VPC: leave as default
+   - Subnet: choose the subnet in Availability Zone 1a   (e.g. ap-south-1a)
+   - Auto-assign public IP: Enable
+
+9. Still in "Network settings", under "Firewall (security groups)":
+   - Select "Create security group"
+   - Security group name: type   EFS-SG
+   - Description: type   EFS Security Group
+   - Under "Inbound security group rules":
+     - Rule 1 is SSH (already there) -- leave it
+     - Click "Add security group rule"
+       - Type: NFS
+       - Source: Anywhere (0.0.0.0/0)
+
+10. Leave all other settings as default
+
+11. Click the orange button "Launch instance"
+
+12. Click "View all instances" and wait for the instance state to show "Running"
+
+
+-------------------------------------------------
+STEP 2: LAUNCH SECOND EC2 INSTANCE (EFS-2)
+-------------------------------------------------
+
+1. In the left sidebar, click "Instances"
+
+2. Click "Launch instances"
+
+3. Under "Name and tags" section:
+   - Name field: type   EFS-2
+
+4. Under "Application and OS Images" section:
+   - Select "Amazon Linux"
+   - Choose "Amazon Linux 2023 AMI" (64-bit x86)
+
+5. Under "Instance type" section:
+   - Select   t2.micro
+
+6. Under "Key pair (login)" section:
+   - Select the existing key pair   EFS   (the one you created above)
+
+7. Under "Network settings" section, click "Edit":
+   - VPC: leave as default
+   - Subnet: choose the subnet in Availability Zone 1b   (e.g. ap-south-1b)   -- DIFFERENT from EFS-1
+   - Auto-assign public IP: Enable
+
+8. Still in "Network settings", under "Firewall (security groups)":
+   - Select "Select existing security group"
+   - Choose   EFS-SG   (the one created in Step 1)
+
+9. Leave all other settings as default
+
+10. Click the orange button "Launch instance"
+
+11. Click "View all instances" and wait for the instance state to show "Running"
+
+
+-------------------------------------------------
+STEP 3: CREATE AN EFS FILE SYSTEM
+-------------------------------------------------
+
+1. Go to: AWS Management Console  -->  Services  -->  EFS
+   (Search "EFS" in the top search bar and click "Elastic File System")
+
+2. Top-right of the page, click the orange button "Create file system"
+
+3. In the pop-up window that appears:
+   - Name: leave blank (optional)
+   - VPC: select   Default VPC
+   - Click "Customize" (do NOT click the quick create button)
+
+4. On the "File system settings" page:
+   - Leave all settings as default
+   - Make sure "Enable" is checked under Availability and durability (Regional)
+   - Click "Next"
+
+5. On the "Network access" page:
+   - You will see Mount targets listed for each Availability Zone
+   - For each row, under "Security groups":
+     - Click the X to remove the existing/default security group
+     - Click the dropdown and select   EFS-SG   (the security group you created)
+   - Do this for all availability zones listed
+   - Click "Next"
+
+6. On the "File system policy" page:
+   - Leave everything as default
+   - Click "Next"
+
+7. On the "Review and create" page:
+   - Review all settings
+   - Click "Create" at the bottom
+
+
+-------------------------------------------------
+STEP 4: CONNECT TO EFS-1 INSTANCE (POWERSHELL SESSION 1)
+-------------------------------------------------
+
+1. Open PowerShell on your local machine
+
+2. Navigate to the folder where your EFS.pem key file is saved:
+   cd C:\Users\YourName\Downloads
+
+3. Go to: EC2  -->  Instances  -->  click on "EFS-1"
+   - Copy the "Public IPv4 address" shown in the details panel
+
+4. In PowerShell, run the SSH command:
+   ssh -i EFS.pem ec2-user@<paste-public-ip-here>
+
+   Example:
+   ssh -i EFS.pem ec2-user@13.235.10.45
+
+5. If prompted "Are you sure you want to continue connecting?" type   yes   and press Enter
+
+6. Once connected, switch to root user:
+   sudo su
+
+7. Create a directory named efs:
+   mkdir efs
+
+8. Install Amazon EFS utilities:
+   yum install -y amazon-efs-utils
+
+9. List files to confirm:
+   ls
+
+
+-------------------------------------------------
+STEP 5: CONNECT TO EFS-2 INSTANCE (POWERSHELL SESSION 2)
+-------------------------------------------------
+
+1. Open a SECOND PowerShell window (do not close the first one)
+
+2. Navigate to the folder where your EFS.pem key file is saved:
+   cd C:\Users\YourName\Downloads
+
+3. Go to: EC2  -->  Instances  -->  click on "EFS-2"
+   - Copy the "Public IPv4 address"
+
+4. In the second PowerShell window, run the SSH command:
+   ssh -i EFS.pem ec2-user@<paste-EFS-2-public-ip-here>
+
+5. Type   yes   if prompted and press Enter
+
+6. Switch to root user:
+   sudo su
+
+7. Create a directory named efs:
+   mkdir efs
+
+8. Install Amazon EFS utilities:
+   yum install -y amazon-efs-utils
+
+9. List files to confirm:
+   ls
+
+
+-------------------------------------------------
+STEP 6: ATTACH EFS TO BOTH EC2 INSTANCES
+-------------------------------------------------
+
+GET THE MOUNT COMMAND:
+
+1. Go to: AWS Management Console  -->  EFS
+
+2. Click on the EFS file system you just created
+
+3. Top-right of the file system page, click the "Attach" button
+
+4. In the pop-up window:
+   - Select "Mount via DNS"
+   - Under "Using the EFS mount helper", copy the entire mount command shown
+     It will look like:
+     mount -t efs -o tls fs-xxxxxxxxxx:/ efs
+
+MOUNT ON EFS-1 (PowerShell Session 1):
+
+5. Go to your first PowerShell window (connected to EFS-1)
+
+6. Make sure you are in the home directory:
+   cd ~
+
+7. Paste and run the copied mount command:
+   mount -t efs -o tls fs-xxxxxxxxxx:/ efs
+
+8. Wait for the command to complete (no error = success)
+
+MOUNT ON EFS-2 (PowerShell Session 2):
+
+9. Go to your second PowerShell window (connected to EFS-2)
+
+10. Make sure you are in the home directory:
+    cd ~
+
+11. Paste and run the same mount command:
+    mount -t efs -o tls fs-xxxxxxxxxx:/ efs
+
+
+-------------------------------------------------
+STEP 7: VERIFY AND TEST EFS SHARED STORAGE
+-------------------------------------------------
+
+TEST FROM EFS-1:
+
+1. In PowerShell Session 1 (EFS-1), change into the efs directory:
+   cd efs
+
+2. Create a test file:
+   touch testfile.txt
+
+3. Confirm the file was created:
+   ls
+
+VERIFY FROM EFS-2:
+
+4. In PowerShell Session 2 (EFS-2), change into the efs directory:
+   cd efs
+
+5. List files:
+   ls
+
+   You should see "testfile.txt" appear here even though it was created on EFS-1.
+   This confirms that EFS is shared and both instances are reading/writing the same file system.
+
+
+=================================================
+TASK 1 COMPLETE
+Both EC2 instances in different Availability Zones are now sharing the same EFS file system. Any file created on one instance is instantly visible on the other.
+=================================================
